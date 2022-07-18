@@ -413,6 +413,8 @@ async fn process_stdio<T: AsyncReadExt + Unpin>(
 async fn run_yarn_command(base_directory: &impl AsRef<Path>) {
     println!("Running `yarn` command in integration tests root directory.");
     let output = Command::new("yarn")
+        .arg("install")
+        .arg("--update-checksums")
         .current_dir(base_directory)
         .output()
         .await
