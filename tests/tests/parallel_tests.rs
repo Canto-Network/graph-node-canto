@@ -412,6 +412,19 @@ async fn process_stdio<T: AsyncReadExt + Unpin>(
 /// run yarn to build everything
 async fn run_yarn_command(base_directory: &impl AsRef<Path>) {
     println!("Running `yarn` command in integration tests root directory.");
+    let cleanup = Command::new("yarn")
+        .arg("cache")
+        .arg("clean")
+        .arg("--all")
+        .current_dir(base_directory)
+        .output()
+        .await
+        .expect("failed to run yarn cache clean command");
+
+    if cleanup.status.success() {
+        return;
+    }
+
     let output = Command::new("yarn")
         .arg("install")
         .arg("--update-checksums")
