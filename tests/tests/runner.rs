@@ -87,91 +87,24 @@ async fn typename() -> anyhow::Result<()> {
         fixture::build_subgraph(&test_dir).await
     };
 
-    let chain: Vec<BlockWithTriggers<Chain>> = {
-        let block0_hash = H256::from_low_u64_be(0);
-        let block0 = BlockWithTriggers {
-            block: BlockFinality::Final(Arc::new(LightEthereumBlock {
-                hash: Some(block0_hash),
-                number: Some(U64::from(0)),
-                ..Default::default()
-            })),
-            trigger_data: vec![EthereumTrigger::Block(
-                test_ptr(0),
-                EthereumBlockTriggerType::Every,
-            )],
+    let blocks = {
+        let block_0 = genesis();
+        let block_1 = empty_block(block_0.ptr(), test_ptr(1));
+        let block_1_reorged_ptr = BlockPtr {
+            number: 1,
+            hash: H256::from_low_u64_be(12).into(),
         };
-        let block1 = BlockWithTriggers::<Chain> {
-            block: BlockFinality::Final(Arc::new(LightEthereumBlock {
-                hash: Some(H256::from_low_u64_be(1)),
-                number: Some(U64::from(1)),
-                parent_hash: block0_hash,
-                ..Default::default()
-            })),
-            trigger_data: vec![EthereumTrigger::Block(
-                test_ptr(1),
-                EthereumBlockTriggerType::Every,
-            )],
-        };
-        let block1_hash_reorged = H256::from_low_u64_be(11);
-        let block1_reorged = BlockWithTriggers::<Chain> {
-            block: BlockFinality::Final(Arc::new(LightEthereumBlock {
-                hash: Some(block1_hash_reorged),
-                number: Some(U64::from(1)),
-                parent_hash: block0_hash,
-                ..Default::default()
-            })),
-            trigger_data: vec![EthereumTrigger::Block(
-                BlockPtr {
-                    hash: block1_hash_reorged.into(),
-                    number: 1,
-                },
-                EthereumBlockTriggerType::Every,
-            )],
-        };
-        let block2_hash = H256::from_low_u64_be(2);
-        let block2 = BlockWithTriggers::<Chain> {
-            block: BlockFinality::Final(Arc::new(LightEthereumBlock {
-                hash: Some(block2_hash),
-                number: Some(U64::from(2)),
-                parent_hash: block1_hash_reorged,
-                ..Default::default()
-            })),
-            trigger_data: vec![EthereumTrigger::Block(
-                BlockPtr {
-                    hash: block2_hash.into(),
-                    number: 2,
-                },
-                EthereumBlockTriggerType::Every,
-            )],
-        };
-        let block3_hash = H256::from_low_u64_be(3);
-        let block3 = BlockWithTriggers::<Chain> {
-            block: BlockFinality::Final(Arc::new(LightEthereumBlock {
-                hash: Some(block3_hash),
-                number: Some(U64::from(3)),
-                parent_hash: block2_hash,
-                ..Default::default()
-            })),
-            trigger_data: vec![EthereumTrigger::Block(
-                BlockPtr {
-                    hash: block3_hash.into(),
-                    number: 3,
-                },
-                EthereumBlockTriggerType::Every,
-            )],
-        };
-        vec![block0, block1, block1_reorged, block2, block3]
+        let block_1_reorged = empty_block(block_0.ptr(), block_1_reorged_ptr);
+        let block_2 = empty_block(block_1_reorged.ptr(), test_ptr(2));
+        let block_3 = empty_block(block_2.ptr(), test_ptr(3));
+        vec![block_0, block_1, block_1_reorged, block_2, block_3]
     };
 
-    let stop_block = chain.last().unwrap().block.ptr();
+    let stop_block = blocks.last().unwrap().block.ptr();
 
-    let ctx = fixture::setup(
-        subgraph_name.clone(),
-        &hash,
-        "./integration-tests/config.simple.toml",
-        chain,
-    )
-    .await;
+    let stores = stores("./integration-tests/config.simple.toml").await;
+    let chain = chain(blocks, &stores).await;
+    let ctx = fixture::setup(subgraph_name.clone(), &hash, &stores, chain).await;
 
     let provider = ctx.provider.clone();
     let store = ctx.store.clone();
