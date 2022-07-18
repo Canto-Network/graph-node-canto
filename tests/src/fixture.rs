@@ -47,13 +47,13 @@ pub async fn build_subgraph(dir: &str) -> DeploymentHash {
         .await
         .expect("Could not connect to IPFS, make sure it's running at port 5001");
 
-    run_cmd(
-        Command::new("yarn")
-            .arg("cache")
-            .arg("clean")
-            .arg("--all")
-            .current_dir("./integration-tests"),
-    );
+    // run_cmd(
+    //     Command::new("yarn")
+    //         .arg("cache")
+    //         .arg("clean")
+    //         .arg("--all")
+    //         .current_dir("./integration-tests"),
+    // );
 
     // Make sure dependencies are present.
     run_cmd(
